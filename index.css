@@ -1,0 +1,56 @@
+
+.nord {
+	border-top: 1px solid black !important;
+}
+.sud {
+	border-bottom: 1px solid black !important;
+}
+.est {
+	border-right: 1px solid black !important;
+}
+.ouest {
+	border-left: 1px solid black !important;
+}
+.solution {
+	background-color: green;
+}
+.dep {
+	background-color: red;
+}
+.arr {
+	background-color: blue;
+}
+.perso {
+	background-color: pink !important;
+}
+.piece {
+	background-color: yellow;
+}
+.monstre {
+	background-color: purple;
+}
+.contenu {
+	margin: 0px;
+	padding: 0px;
+	display: inline-block;
+	height: 10px !important;
+	width: 10px !important;
+	color: white;
+}
+.prepa {
+	border: 1px solid white;
+	white-space:nowrap;
+}
+.score {
+	display: inline-block;
+	float: right;
+}
+.first {
+	background-color: rgb(255, 215, 0);
+}
+.second {
+	background-color: rgb(192, 192, 192);
+}
+.third {
+	background-color: rgb(165, 42, 42);
+}

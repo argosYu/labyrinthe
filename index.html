@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+		<script src="angular.js"></script>
+		<script src="angular-animate.js"></script>
+		<script src="angular-resource.js"></script>
+		<script src="angular-route.js"></script>
+		<script src="angular-touch.js"></script>
+		<script src="ui-bootstrap-tpls-1.3.3.min.js"></script>
+		<!--<link rel="stylesheet" href="bootstrap.css" />-->
+		<link rel="stylesheet" href="index.css" />
+	</head>
+	<body ng-app="app" ng-controller="ctrl">
+		Hauteur du labyrinthe: <input type="number" ng-min="3" ng-max="255" ng-model="tailleTableau"> Longeur du labyrinthe: <input type="number" ng-min="3" ng-max="255" ng-model="hautTableau"> <button ng-click="requete()">Actualiser</button> Solution: <input type="checkbox" ng-model="soluce"> 
+		<br />
+		<h2 ng-init="" ng-click="Regle = !Regle">
+			Règles (cliquez ici)
+		</h2>
+		<div ng-show="Regle">
+			<span style="color: red">Rouge</span>: Départ<br />
+			<span style="color: blue">Bleu</span>: Arrivé<br />
+			<span style="color: pink">Rose</span>: Personnage<br />
+			<span style="color: green">Vert</span>: Solution<br />
+			<span style="color: purple">Violet</span>: Monstres<br />
+			<span style="color: yellow">Jaune</span>: pièce à collectionner pour le Score<br />
+			Déplacez vous avez les flèches du clavier, à la fin vous avez la possibilité d'enregistrer votre Score.<br />
+			Chaque <span style="color: yellow">piece</span> ramassé rapporte 1 point, chaque <span style="color: purple">monstre</span> rencontré en fais perdre 2 (il y a deux fois plus de piece que de monstre)<br />
+			vous êtes libre de choisir les dimensions du labyrinthe entre 3 et 255 (défaut: 10) et le nombre score affiché entre 1 et 255 (défaut: 3)<br />
+		</div>
+		<br />
+		<br />
+		<span ng-show="!Victoire">
+			Score: {{Score}}
+		</span>
+		<div ng-show="Victoire">
+			<h1>Victoire!</h1>
+			Votre Score: {{Score}}<br />
+			Entrez votre Pseudo: <input type="text" ng-model="Pseudo"><br />
+			<button ng-click="Save()">Enregistrez votre score</button><br />
+			{{resultSave}}
+		</div>
+		<br />
+		<br />
+		<div style="display: inline-block; float: left">
+			<div ng-repeat="ligne in json">
+				<span class="prepa" ng-repeat="l in ligne.listecase" ng-class="{'nord': l.info.Nord == 0,'sud': l.info.Sud == 0,'est': l.info.Est == 0,'ouest': l.info.Ouest == 0, 'solution': l.info.Solution == 1 && soluce, 'arr': l.info.CaseArr == 1, 'dep': l.info.CaseDep == 1, 'perso': l.info.Perso == 1, 'piece': l.info.Piece == 1, 'monstre': l.info.Monstre == 1}">
+					<div class="contenu">
+						
+					</div>
+				</span>
+			</div>
+		</div>
+		<div class="score" ng-init="showPodium = false">
+			<span ng-show="!showPodium" ng-click="showPodium = !showPodium">
+				Cliquez ici pour les résultats!
+			</span>
+			<span ng-show="showPodium">
+				Nombre de résultat: <input ng-init="TPodium = 3" type="number" ng-min="1" ng-max="255" ng-model="TPodium"> <button ng-click="Podium()">Actualiser</button><br />
+				<table>
+					<tr ng-repeat="s in CPodium">
+						<td ng-class="{'first': $index == 0, 'second': $index == 1, 'third': $index == 2}">
+							{{$index + 1}} | {{s.Pseudo}} | {{s.Score}}
+						</td>
+					</tr>
+				</table>
+			</span>
+		</div>
+		<script type="text/javascript">
+			var nyan = new Audio('nyan.mp3');
+			nyan.addEventListener('ended', function() {
+			    this.currentTime = 0;
+			    this.play();
+			}, false);
+			var Victoire = new Audio('victoire.mp3');
+			Victoire.addEventListener('ended', function() {
+			    this.currentTime = 0;
+			    this.play();
+			}, false);
+			var app = angular.module('app', ['ui.bootstrap']);
+	
+			app.controller('ctrl', function($scope, $interval, $http){
+				$scope.json = [{"listecase":[{"info":[{"Abscisse":0,"CaseArr":0,"CaseDep":0,"Est":0,"Nord":0,"Ordonne":0,"Ouest":0,"Perso":0,"Sud":1,"Solution":1,"Piece":1,"Monstre":0}]}]}];
+				$scope.Score = 0;
+				$scope.Pseudo = "";
+				$scope.Victoire = false;
+				$scope.soluce = false;
+				$scope.tailleTableau = 10;
+				$scope.hautTableau = 10;
+				$scope.Save = function()
+				{
+					$http({
+						method: 'GET',
+						url: 'http://localhost:61460/Service1.svc/t/save/' + $scope.Pseudo + "/" + $scope.Score
+					}).then(function successCallback(response)
+					{
+						$scope.resultSave = response.data;
+					}, function errorCallback(response)
+					{
+						$scope.resultSave = response;
+					});
+					$scope.requete();
+				}
+
+				$scope.Podium = function()
+				{
+					$http({
+						method: 'GET',
+						url: 'http://localhost:61460/Service1.svc/t/podium/' + $scope.TPodium
+					}).then(function successCallback(response)
+					{
+						$scope.CPodium = response.data;
+					}, function errorCallback(response)
+					{
+						$scope.CPodium = response;
+					});
+					//$scope.$apply();
+				}
+
+				$scope.requete = function()
+				{
+					nyan.play();
+					Victoire.pause();
+					$scope.Score = 0;
+					$scope.Pseudo = "";
+					$scope.Genre = true;
+					$scope.Victoire = false;
+					$scope.soluce = false;
+					if ($scope.tailleTableau == undefined)
+					{
+						$scope.tailleTableau = 10;
+					}
+					if ($scope.hautTableau == undefined)
+					{
+						$scope.hautTableau = 10;
+					}
+					$http({
+						method: 'GET',
+						url: 'http://localhost:61460/Service1.svc/t/laby/' + $scope.tailleTableau + "/" + $scope.hautTableau
+					}).then(function successCallback(response)
+					{
+						$scope.json = response.data.tableaucase;
+					}, function errorCallback(response)
+					{
+						$scope.json = response;
+					});
+				}
+
+				$scope.requete();
+				$scope.depPerso = function(e)
+				{
+					e = e || window.event;
+				    var a;
+				    var b;
+
+				    if (e.keyCode == '38') {
+				    	for (var i = 0; i < $scope.tailleTableau; i++) {
+				    		for (var j = 0; j < $scope.hautTableau; j++) {
+				    			if ($scope.json[i].listecase[j].info.Perso == 1 && $scope.json[i].listecase[j].info.Nord == 1)
+				    			{
+				    				a = ($scope.json[i].listecase[j].info.Abscisse - 1 + $scope.tailleTableau)% $scope.tailleTableau;
+				    				b = $scope.json[i].listecase[j].info.Ordonne;
+				    				$scope.json[i].listecase[j].info.Perso = 0;
+				    			}
+				    		}
+				    	}
+				        // up arrow
+				    }
+				    else if (e.keyCode == '40') {
+				    	for (var i = 0; i < $scope.tailleTableau; i++) {
+				    		for (var j = 0; j < $scope.hautTableau; j++) {
+				    			if ($scope.json[i].listecase[j].info.Perso == 1 && $scope.json[i].listecase[j].info.Sud == 1)
+				    			{
+				    				a = ($scope.json[i].listecase[j].info.Abscisse + 1)% $scope.tailleTableau;
+				    				b = $scope.json[i].listecase[j].info.Ordonne;
+				    				$scope.json[i].listecase[j].info.Perso = 0;
+				    			}
+				    		}
+				    	}
+				        // down arrow
+				    }
+				    else if (e.keyCode == '37') {
+				    	for (var i = 0; i < $scope.tailleTableau; i++) {
+				    		for (var j = 0; j < $scope.hautTableau; j++) {
+				    			if ($scope.json[i].listecase[j].info.Perso == 1 && $scope.json[i].listecase[j].info.Ouest == 1)
+				    			{
+				    				a = $scope.json[i].listecase[j].info.Abscisse;
+				    				b = ($scope.json[i].listecase[j].info.Ordonne - 1 + $scope.hautTableau)% $scope.hautTableau;
+				    				$scope.json[i].listecase[j].info.Perso = 0;
+				    			}
+				    		}
+				    	}
+				       // left arrow
+				    }
+				    else if (e.keyCode == '39') {
+				    	for (var i = 0; i < $scope.tailleTableau; i++) {
+				    		for (var j = 0; j < $scope.hautTableau; j++) {
+				    			if ($scope.json[i].listecase[j].info.Perso == 1 && $scope.json[i].listecase[j].info.Est == 1)
+				    			{
+				    				a = $scope.json[i].listecase[j].info.Abscisse;
+				    				b = ($scope.json[i].listecase[j].info.Ordonne + 1)% $scope.hautTableau;
+				    				$scope.json[i].listecase[j].info.Perso = 0;
+				    			}
+				    		}
+				    	}
+				       // right arrow
+				    }
+				    $scope.json[a].listecase[b].info.Perso = 1;
+				    if ($scope.json[a].listecase[b].info.Piece == 1)
+				    {
+				    	$scope.json[a].listecase[b].info.Piece = 0;
+				    	$scope.Score++;
+				    }
+				    if ($scope.json[a].listecase[b].info.Monstre == 1)
+				    {
+				    	$scope.json[a].listecase[b].info.Monstre = 0;
+				    	$scope.Score -= 2;
+				    }
+				    for (var i = 0; i < $scope.tailleTableau; i++) {
+				    	for (var j = 0; j < $scope.hautTableau; j++) {
+				    		if ($scope.json[i].listecase[j].info.Abscisse == a && $scope.json[i].listecase[j].info.Ordonne == b && $scope.json[i].listecase[j].info.CaseArr == 1)
+				    		{
+				    			Victoire.play();
+				    			nyan.pause();
+				    			window.alert("Vous avez gagné!");
+				    			$scope.Victoire = true;
+				    		}
+				    	}
+				    }
+				    $scope.MouvMonstre();
+				    if ($scope.json[a].listecase[b].info.Monstre == 1)
+				    {
+				    	$scope.json[a].listecase[b].info.Monstre = 0;
+				    	$scope.Score -= 2;
+				    }
+				    $scope.$apply();
+				}
+
+				$scope.MouvMonstre = function()
+				{
+					var liste = [];
+					for (var i = 0; i < $scope.tailleTableau; i++) {
+				    	for (var j = 0; j < $scope.hautTableau; j++) {
+				    		if ($scope.json[i].listecase[j].info.Monstre == 1)
+				    		{
+				    			liste.push({"i":i,"j":j});
+				    		}
+				    	}
+				    }
+				    liste.forEach(function(element)
+				    {
+				    	var choix = Math.floor((Math.random()*4)+1);
+					    var a;
+					    var b;
+
+					    if (choix == 1) {
+					    			if ($scope.json[element.i].listecase[element.j].info.Nord == 1 && $scope.json[(element.i - 1 + $scope.tailleTableau)% $scope.tailleTableau].listecase[element.j].info.Monstre != 1)
+					    			{
+					    				a = (element.i - 1 + $scope.tailleTableau)% $scope.tailleTableau;
+					    				b = element.j;
+					    				$scope.json[element.i].listecase[element.j].info.Monstre = 0;
+					    			}
+					        // up
+					    }
+					    else if (choix == 2) {
+					    			if ($scope.json[element.i].listecase[element.j].info.Sud == 1 && $scope.json[(element.i + 1 + $scope.tailleTableau)% $scope.tailleTableau].listecase[element.j].info.Monstre != 1)
+					    			{
+					    				a = (element.i + 1 + $scope.tailleTableau)% $scope.tailleTableau;
+					    				b = element.j;
+					    				$scope.json[element.i].listecase[element.j].info.Monstre = 0;
+					    			}
+					        // down
+					    }
+					    else if (choix == 3) {
+					    			if ($scope.json[element.i].listecase[element.j].info.Ouest == 1 && $scope.json[element.i].listecase[(element.j - 1 + $scope.hautTableau)% $scope.hautTableau].info.Monstre != 1)
+					    			{
+					    				a = element.i;
+					    				b = (element.j - 1 + $scope.hautTableau)% $scope.hautTableau;
+					    				$scope.json[element.i].listecase[element.j].info.Monstre = 0;
+					    			}
+					       // left arrow
+					    }
+					    else if (choix == 4) {
+					    			if ($scope.json[element.i].listecase[element.j].info.Est == 1 && $scope.json[element.i].listecase[(element.j + 1 + $scope.hautTableau)% $scope.hautTableau].info.Monstre != 1)
+					    			{
+					    				a = element.i;
+					    				b = (element.j + 1 + $scope.hautTableau)% $scope.hautTableau;
+					    				$scope.json[element.i].listecase[element.j].info.Monstre = 0;
+					    			}
+					       // right arrow
+					    }
+					    if (a != undefined && b != undefined)
+					    {
+					    	$scope.json[a].listecase[b].info.Monstre = 1;
+					    }
+					});
+				}
+				document.onkeydown = $scope.depPerso;
+			});
+		</script>
+	</body>
+</html>
